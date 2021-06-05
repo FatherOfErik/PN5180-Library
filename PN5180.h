@@ -32,6 +32,7 @@
 #define RX_WAIT_CONFIG      (0x11)
 #define CRC_RX_CONFIG       (0x12)
 #define RX_STATUS           (0x13)
+#define TX_CONFIG           (0x18)
 #define RF_STATUS           (0x1d)
 #define SYSTEM_STATUS       (0x24)
 #define TEMP_CONTROL        (0x25)
@@ -64,18 +65,31 @@ enum PN5180TransceiveStat {
 #define TX_RFON_IRQ_STAT    (1<<9)  // RF Field ON in PCD IRQ
 #define RX_SOF_DET_IRQ_STAT (1<<14) // RF SOF Detection IRQ
 
+// PN5180 1-Byte Direct Commands
+// see 11.4.3.3 Host Interface Command List
+#define PN5180_WRITE_REGISTER           (0x00)
+#define PN5180_WRITE_REGISTER_OR_MASK   (0x01)
+#define PN5180_WRITE_REGISTER_AND_MASK  (0x02)
+#define PN5180_READ_REGISTER            (0x04)
+#define PN5180_READ_EEPROM              (0x07)
+#define PN5180_SEND_DATA                (0x09)
+#define PN5180_READ_DATA                (0x0A)
+#define PN5180_SWITCH_MODE              (0x0B)
+#define PN5180_LOAD_RF_CONFIG           (0x11)
+#define PN5180_RF_ON                    (0x16)
+#define PN5180_RF_OFF                   (0x17)
+
 class PN5180 {
 private:
   uint8_t PN5180_NSS;   // active low
   uint8_t PN5180_BUSY;
   uint8_t PN5180_RST;
 
-  SPISettings PN5180_SPI_SETTINGS;
   static uint8_t readBuffer[508];
 
 public:
   PN5180(uint8_t SSpin, uint8_t BUSYpin, uint8_t RSTpin);
-
+  SPISettings PN5180_SPI_SETTINGS;
   void begin();
   void end();
 
@@ -85,22 +99,25 @@ public:
 public:
   /* cmd 0x00 */
   bool writeRegister(uint8_t reg, uint32_t value);
+
   /* cmd 0x01 */
   bool writeRegisterWithOrMask(uint8_t addr, uint32_t mask);
+
   /* cmd 0x02 */
   bool writeRegisterWithAndMask(uint8_t addr, uint32_t mask);
 
   /* cmd 0x04 */
   bool readRegister(uint8_t reg, uint32_t *value);
 
-  /* cmd 0x06 */
-  bool writeEEPROM(uint8_t addr, uint8_t *buffer, int len);
-  
   /* cmd 0x07 */
   bool readEEprom(uint8_t addr, uint8_t *buffer, int len);
 
   /* cmd 0x09 */
   bool sendData(uint8_t *data, int len, uint8_t validBits = 0);
+
+  /* cmd 0x09 */
+  bool sendEOF();  
+
   /* cmd 0x0a */
   uint8_t * readData(int len);
 
@@ -109,6 +126,10 @@ public:
 
   /* cmd 0x16 */
   bool setRF_on();
+  
+  /* cmd 0x16 */
+  bool setRF_bit();  
+  
   /* cmd 0x17 */
   bool setRF_off();
 
@@ -119,15 +140,17 @@ public:
   void reset();
 
   uint32_t getIRQStatus();
+  
   bool clearIRQStatus(uint32_t irqMask);
 
   PN5180TransceiveStat getTransceiveState();
-
+  
+  bool transceiveCommand(uint8_t *sendBuffer, size_t sendBufferLen, uint8_t *recvBuffer = 0, size_t recvBufferLen = 0);
   /*
    * Private methods, called within an SPI transaction
    */
 private:
-  bool transceiveCommand(uint8_t *sendBuffer, size_t sendBufferLen, uint8_t *recvBuffer = 0, size_t recvBufferLen = 0);
+
 
 };
 

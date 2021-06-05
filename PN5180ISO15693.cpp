@@ -16,11 +16,14 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 // Lesser General Public License for more details.
 //
+// 20210603 Arne Ljung, Added autocollision api
 //#define DEBUG 1
 
 #include <Arduino.h>
 #include "PN5180ISO15693.h"
+#include "PN5180.h"
 #include "Debug.h"
+
 
 PN5180ISO15693::PN5180ISO15693(uint8_t SSpin, uint8_t BUSYpin, uint8_t RSTpin)
               : PN5180(SSpin, BUSYpin, RSTpin) {
@@ -68,6 +71,63 @@ ISO15693ErrorCode PN5180ISO15693::getInventory(uint8_t *uid) {
 
   return ISO15693_EC_OK;
 }
+
+
+/*
+ * Inventory16slot, code=01
+ *
+ * Request format: SOF, Req.Flags, Inventory, AFI (opt.), Mask len, Mask value, CRC16, EOF
+ * Response format: SOF, Resp.Flags, DSFID, UID, CRC16, EOF
+ *
+ * The uidBlock is a vectror that contains up to 16 uid, each uid starts at position n*10
+ * in the vector. n=0..15. Example, uid for NFC tag 2 is located in position 20 to 28 in the 
+ * vectror. uidCounter contains the number of NFC tags found
+ * 
+ * This code is designed after AN12650 "Using the PN5180 without library" from NXP
+ */
+ISO15693ErrorCode PN5180ISO15693::getInventory16slot(uint8_t *uidBlock, uint8_t *uidCounter) {
+  //                     Flags, CMD,  maskLen
+  uint8_t inventory[] = { 0x06, 0x01, 0x00 };
+  //                        |\- inventory flag + high data rate
+  //                        \-- 16 slot: anti collision routine, no AFI field present
+
+  uint8_t SlotCounter, i; 
+  uint8_t cmd[] = { PN5180_READ_DATA, 0 };
+  uint8_t *resultPtr;
+  
+  uidCounter[0] = 0;
+  setRF_off();
+  loadRFConfig(0x0d, 0x8d);
+  setRF_bit();
+  clearIRQStatus(0x000fffff); //Clears the interrupt register IRQ_STATUS
+  sendData(inventory, sizeof(inventory));
+  
+  for (int SlotCounter=0; SlotCounter<16;SlotCounter++) 
+  {
+    if (0 != (getIRQStatus() & RX_SOF_DET_IRQ_STAT)) 
+    {
+      uint32_t rxStatus;
+      readRegister(RX_STATUS, &rxStatus);
+      uint16_t len = (uint16_t)(rxStatus & 0x000001ff);
+      resultPtr = readData(len);
+      
+      for (int i=0; i<8; i++) {
+        uidBlock[uidCounter[0]*10+i] = resultPtr[i+2];
+      }
+      uidCounter[0]++;
+      
+    }
+    writeRegisterWithAndMask(TX_CONFIG, 0xfffffb3f); //Send only EOF (End Of Frame)
+                                        //without data at the next RF communication
+    writeRegisterWithAndMask(SYSTEM_CONFIG, 0xfffffff8);  // Idle/StopCom Command
+    writeRegisterWithOrMask(SYSTEM_CONFIG, 0x00000003);   // Transceive Command
+    clearIRQStatus(0x000fffff);         //Clears the register IRQ_STATUS
+    sendEOF();
+  }
+
+  return ISO15693_EC_OK;
+}
+
 
 /*
  * Read single block, code=20
@@ -513,7 +573,7 @@ ISO15693ErrorCode PN5180ISO15693::issueISO15693Command(uint8_t *cmd, uint8_t cmd
 #endif
 
   sendData(cmd, cmdLen);
-  delay(10);
+  delay(15);
 
   if (0 == (getIRQStatus() & RX_SOF_DET_IRQ_STAT)) {
     return EC_NO_CARD;

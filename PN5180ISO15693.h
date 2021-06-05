@@ -45,7 +45,7 @@ private:
   ISO15693ErrorCode issueISO15693Command(uint8_t *cmd, uint8_t cmdLen, uint8_t **resultPtr);
 public:
   ISO15693ErrorCode getInventory(uint8_t *uid);
-
+  ISO15693ErrorCode getInventory16slot(uint8_t *uidBlock, uint8_t *uidCounter);
   ISO15693ErrorCode readSingleBlock(uint8_t *uid, uint8_t blockNo, uint8_t *blockData, uint8_t blockSize);
   ISO15693ErrorCode writeSingleBlock(uint8_t *uid, uint8_t blockNo, uint8_t *blockData, uint8_t blockSize);
 

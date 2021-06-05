@@ -7,6 +7,12 @@ Arduino Uno / Arduino ESP-32 library for PN5180-NFC Module from NXP Semiconducto
 
 Release Notes:
 
+Version 1.7 - 06.06.2021
+
+        * Added PN5180::getInventory16slot.
+        * Added time delay in issueISO15693Command after sendData from 10ms to 15 ms
+        * The anicollision routine is not itterative and can only handle tags with different last 4 bits in theire ID
+        
 Version 1.6 - 13.03.2021
 
 	* Added PN5180::writeEEPROM
