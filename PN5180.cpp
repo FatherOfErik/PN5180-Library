@@ -489,7 +489,6 @@ status register contain information on the exception.
  * If there is a parameter error, the IRQ is set to ACTIVE and a GENERAL_ERROR_IRQ is set.
  */
 bool PN5180::transceiveCommand(uint8_t *sendBuffer, size_t sendBufferLen, uint8_t *recvBuffer, size_t recvBufferLen) {
-
 #ifdef DEBUG
   PN5180DEBUG(F("Sending SPI frame: '"));
   for (uint8_t i=0; i<sendBufferLen; i++) {
@@ -517,7 +516,6 @@ bool PN5180::transceiveCommand(uint8_t *sendBuffer, size_t sendBufferLen, uint8_
   // check, if write-only
   //
   if ((0 == recvBuffer) || (0 == recvBufferLen)) return true;
-
   PN5180DEBUG(F("Receiving SPI frame...\n"));
 
   // 1.

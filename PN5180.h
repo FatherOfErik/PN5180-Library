@@ -27,6 +27,7 @@
 #define IRQ_STATUS          (0x02)
 #define IRQ_CLEAR           (0x03)
 #define TRANSCEIVE_CONTROL  (0x04)
+#define PN5180_WRITE_EEPROM (0x06)
 #define TIMER1_RELOAD       (0x0c)
 #define TIMER1_CONFIG       (0x0f)
 #define RX_WAIT_CONFIG      (0x11)
@@ -143,11 +144,10 @@ public:
   void reset();
 
   uint32_t getIRQStatus();
-  
   bool clearIRQStatus(uint32_t irqMask);
 
   PN5180TransceiveStat getTransceiveState();
-  
+
   bool transceiveCommand(uint8_t *sendBuffer, size_t sendBufferLen, uint8_t *recvBuffer = 0, size_t recvBufferLen = 0);
   /*
    * Private methods, called within an SPI transaction
